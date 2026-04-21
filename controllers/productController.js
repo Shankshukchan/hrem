@@ -1,0 +1,507 @@
+import { Product } from "../models/productModel.js";
+import { User } from "../models/userModel.js";
+import cloudinary from "../utils/cloudinary.js";
+import getDataUri from "../utils/dataUri.js";
+import {
+  sendAdApprovalMail,
+  sendAdRejectionMail,
+} from "../emailVerify/sendAdStatusMail.js";
+
+export const addProduct = async (req, res) => {
+  try {
+    const {
+      title,
+      whatsapp,
+      contact,
+      gender,
+      services,
+      category,
+      state,
+      city,
+      location,
+      age,
+      about,
+      terms,
+      adType = "free",
+    } = req.body;
+    const userId = req.id;
+
+    if (
+      !title ||
+      !whatsapp ||
+      !contact ||
+      !gender ||
+      !services ||
+      !category ||
+      !state ||
+      !city ||
+      !location ||
+      !age ||
+      !about ||
+      !terms
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    // Coin costs for ad types
+    const coinCosts = {
+      free: 0,
+      golden: 100,
+      premium: 200,
+    };
+
+    // Check if user has enough coins for paid ads
+    if (adType !== "free") {
+      const user = await User.findById(userId);
+      const coinsNeeded = coinCosts[adType];
+
+      if (user.coins < coinsNeeded) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient coins. You need ${coinsNeeded} coins for a ${adType} ad. You have ${user.coins} coins.`,
+        });
+      }
+
+      // Deduct coins from user account
+      await User.findByIdAndUpdate(userId, {
+        $inc: { coins: -coinsNeeded },
+      });
+    }
+
+    // Handle multiple image uploads
+    let productImg = [];
+    if (req.files && req.files.length > 0) {
+      for (let file of req.files) {
+        const fileUri = getDataUri(file);
+        const result = await cloudinary.uploader.upload(fileUri, {
+          folder: "mern_products", // cloudinary folder name
+        });
+
+        productImg.push({
+          url: result.secure_url,
+          public_id: result.public_id,
+        });
+      }
+    }
+
+    // create a product in DB
+    const newProduct = await Product.create({
+      userId,
+      title,
+      whatsapp,
+      contact,
+      gender,
+      services,
+      category,
+      state,
+      city,
+      location,
+      age,
+      about,
+      terms,
+      adType,
+      productImg, // array of objects [{url, public_id}, {url, public_id},]
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Advertisement added successfully",
+      product: newProduct,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getAllProduct = async (_, res) => {
+  try {
+    // Fetch all approved products
+    const products = await Product.find({ status: "approved" }).lean().exec();
+
+    if (!products) {
+      return res.status(404).json({
+        success: false,
+        message: "No advertisement available",
+        products: [],
+      });
+    }
+
+    // Sort products by type (premium -> golden -> free) then by creation date
+    const typeOrder = { premium: 0, golden: 1, free: 2 };
+    products.sort((a, b) => {
+      const typeA = typeOrder[a.adType] !== undefined ? typeOrder[a.adType] : 2;
+      const typeB = typeOrder[b.adType] !== undefined ? typeOrder[b.adType] : 2;
+
+      if (typeA !== typeB) {
+        return typeA - typeB;
+      }
+      // If same type, sort by newest first
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    return res.status(200).json({
+      success: true,
+      products,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deleteProduct = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.id;
+    const userRole = req.user?.role;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Check ownership - only owner or admin can delete
+    const isOwner = product.userId.toString() === userId.toString();
+    const isAdmin = userRole === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this product",
+      });
+    }
+
+    // Delete images from cloudinary
+    if (product.productImg && product.productImg.length > 0) {
+      for (let img of product.productImg) {
+        const result = await cloudinary.uploader.destroy(img.public_id);
+      }
+    }
+
+    // Delete product from MongoDB
+    await Product.findByIdAndDelete(productId);
+    return res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const updateProduct = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const {
+      title,
+      whatsapp,
+      contact,
+      gender,
+      services,
+      category,
+      state,
+      city,
+      location,
+      age,
+      about,
+      terms,
+      adType,
+      existingImages,
+    } = req.body;
+    const userId = req.id;
+    const userRole = req.user?.role;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Check ownership - only owner or admin can update
+    const isOwner = product.userId.toString() === userId.toString();
+    const isAdmin = userRole === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to update this product",
+      });
+    }
+
+    // Handle coin deduction if ad type is changed to a paid type
+    const coinCosts = {
+      free: 0,
+      golden: 100,
+      premium: 200,
+    };
+
+    if (adType && adType !== product.adType && adType !== "free") {
+      const user = await User.findById(userId);
+      const coinsNeeded = coinCosts[adType];
+
+      if (user.coins < coinsNeeded) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient coins. You need ${coinsNeeded} coins for a ${adType} ad. You have ${user.coins} coins.`,
+        });
+      }
+
+      // Deduct coins from user account
+      await User.findByIdAndUpdate(userId, {
+        $inc: { coins: -coinsNeeded },
+      });
+    }
+
+    let updatedImages = [];
+
+    // keep selected old Images
+    if (existingImages) {
+      const keepIds = JSON.parse(existingImages);
+      updatedImages = product.productImg.filter((img) =>
+        keepIds.includes(img.public_id),
+      );
+
+      // delete only removed images
+      const removeImages = product.productImg.filter(
+        (img) => !keepIds.includes(img.public_id),
+      );
+      for (let img of removeImages) {
+        await cloudinary.uploader.destroy(img.public_id);
+      }
+    } else {
+      updatedImages = product.productImg; //keep all if nothing sent
+    }
+
+    // upload new images if any
+    if (req.files && req.files.length > 0) {
+      for (let file of req.files) {
+        const fileUri = getDataUri(file);
+        const result = await cloudinary.uploader.upload(fileUri, {
+          folder: "mern_products",
+        });
+        updatedImages.push({
+          url: result.secure_url,
+          public_id: result.public_id,
+        });
+      }
+    }
+
+    // update product
+    product.title = title || product.title;
+    product.whatsapp = whatsapp || product.whatsapp;
+    product.contact = contact || product.contact;
+    product.gender = gender || product.gender;
+    product.services = services || product.services;
+    product.category = category || product.category;
+    product.state = state || product.state;
+    product.city = city || product.city;
+    product.location = location || product.location;
+    product.age = age || product.age;
+    product.about = about || product.about;
+    product.terms = terms || product.terms;
+    product.adType = adType || product.adType;
+    product.productImg = updatedImages;
+
+    // Always reset status to pending when ad is updated
+    product.status = "pending";
+
+    await product.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Product updated successfully",
+      product,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Admin functions
+export const getAllAdsForAdmin = async (req, res) => {
+  try {
+    const allAds = await Product.find()
+      .populate({
+        path: "userId",
+        select: "firstName lastName email phoneNo city state",
+      })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "All advertisements fetched",
+      ads: allAds,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getAdsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const userAds = await Product.find({ userId }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "User advertisements fetched",
+      ads: userAds,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const approveAd = async (req, res) => {
+  try {
+    const { adId } = req.params;
+
+    const ad = await Product.findByIdAndUpdate(
+      adId,
+      { status: "approved", rejectReason: "" },
+      { new: true },
+    );
+
+    if (!ad) {
+      return res.status(404).json({
+        success: false,
+        message: "Advertisement not found",
+      });
+    }
+
+    // Fetch user details to get email
+    const user = await User.findById(ad.userId);
+    if (user && user.email) {
+      try {
+        await sendAdApprovalMail(user.email, ad.title, ad._id.toString());
+      } catch (emailError) {
+        console.error("Failed to send approval email:", emailError);
+        // Continue anyway - don't fail the approval if email fails
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Advertisement approved successfully",
+      ad,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const rejectAd = async (req, res) => {
+  try {
+    const { adId } = req.params;
+    const { reason } = req.body;
+
+    // Fetch the ad first to check if it's a paid ad
+    const ad = await Product.findById(adId);
+    if (!ad) {
+      return res.status(404).json({
+        success: false,
+        message: "Advertisement not found",
+      });
+    }
+
+    // Refund coins if ad is paid (golden or premium)
+    const coinCosts = {
+      free: 0,
+      golden: 100,
+      premium: 200,
+    };
+
+    const refundAmount = coinCosts[ad.adType] || 0;
+    if (refundAmount > 0) {
+      // Refund coins to user
+      await User.findByIdAndUpdate(
+        ad.userId,
+        { $inc: { coins: refundAmount } },
+        { new: true },
+      );
+    }
+
+    // Reject the ad
+    const updatedAd = await Product.findByIdAndUpdate(
+      adId,
+      { status: "rejected", rejectReason: reason || "" },
+      { new: true },
+    );
+
+    // Send rejection email to user
+    const user = await User.findById(ad.userId);
+    if (user && user.email) {
+      try {
+        await sendAdRejectionMail(
+          user.email,
+          ad.title,
+          ad._id.toString(),
+          reason || "",
+        );
+      } catch (emailError) {
+        console.error("Failed to send rejection email:", emailError);
+        // Continue anyway - don't fail the rejection if email fails
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Advertisement rejected successfully${refundAmount > 0 ? ` and ${refundAmount} coins refunded to user` : ""}`,
+      ad: updatedAd,
+      refundedCoins: refundAmount,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getUserAdsForDashboard = async (req, res) => {
+  try {
+    const userId = req.id;
+
+    const userAds = await Product.find({ userId }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "User advertisements fetched",
+      ads: userAds,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
