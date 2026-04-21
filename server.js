@@ -24,10 +24,10 @@ app.use("/api/v1/user", userRoute);
 app.use("/api/v1/product", productRoute);
 app.use("/api/v1/location", statesCitiesRoute);
 app.use("/api/v1/payment", paymentRoute);
-app.post("/cron-job",()=>{
-  console.log("cron hit");
-  
-})
+app.get("/cron-job", (req, res) => {
+  console.log("✅ Cron job hit at:", new Date().toLocaleString());
+  res.status(200).send("Cron job executed");
+});
 
 // http://localhost:8000/api/v1/user/register
 
