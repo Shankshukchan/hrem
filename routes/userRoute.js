@@ -31,4 +31,5 @@ router.get("/get-user/:userId", getUserById);
 router.put("/update/:userId", isAuthenticated, singleUpload, updateUser);
 router.delete("/delete-user/:userId", isAuthenticated, isAdmin, deleteUser);
 
+
 export default router;
