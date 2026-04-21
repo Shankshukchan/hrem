@@ -41,7 +41,6 @@ export const sendAdApprovalMail = async (email, adTitle, adId) => {
     };
 
     const info = await transporter.sendMail(mailConfigurations);
-    console.log("Ad Approval Email Sent Successfully");
     return info;
   } catch (error) {
     console.error("Error sending approval email:", error);
@@ -82,10 +81,8 @@ export const sendAdRejectionMail = async (email, adTitle, adId, reason) => {
     };
 
     const info = await transporter.sendMail(mailConfigurations);
-    console.log("Ad Rejection Email Sent Successfully");
     return info;
   } catch (error) {
-    console.error("Error sending rejection email:", error);
     throw error;
   }
 };
