@@ -1,32 +1,39 @@
 import nodemailer from 'nodemailer'
 import 'dotenv/config'
 
-export const verifyEmail = (token, email) => {
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.MAIL_USER,
-            pass: process.env.MAIL_PASS
-        }
-    });
+export const verifyEmail = async (token, email) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.MAIL_USER,
+                pass: process.env.MAIL_PASS
+            }
+        });
 
-    const mailConfigurations = {
-        from: process.env.MAIL_USER,
-        to: email,
-        subject: 'Email Verification',
+        const mailConfigurations = {
+            from: process.env.MAIL_USER,
+            to: email,
+            subject: 'Email Verification',
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2>Email Verification</h2>
+                    <p>Thank you for registering! Please click the link below to verify your email:</p>
+                    <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify/${token}" style="background-color: #9333ea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        Verify Email
+                    </a>
+                    <p style="margin-top: 20px; color: #999; font-size: 12px;">Or copy this link: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify/${token}</p>
+                </div>
+            `
+        };
 
-        // This would be the text of email body
-        text: `Hi! There, You have recently visited 
-           our website and entered your email.
-           Please follow the given link to verify your email
-           http://localhost:5173/verify/${token} 
-           Thanks`
-    };
-
-    transporter.sendMail(mailConfigurations, function (error, info) {
-        if (error) throw Error(error);
+        const info = await transporter.sendMail(mailConfigurations);
         console.log('Email Sent Successfully');
         console.log(info);
-    });
+        return info;
+    } catch (error) {
+        console.error('Error sending verification email:', error);
+        throw error;
+    }
 }
 

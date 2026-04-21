@@ -10,88 +10,82 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendAdApprovalMail = async (email, adTitle, adId) => {
-  const mailConfigurations = {
-    from: process.env.MAIL_USER,
-    to: email,
-    subject: "Your Advertisement Has Been Approved",
-    html: `
-            <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
-                <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <h2 style="color: #9333ea; margin-bottom: 20px;">✓ Advertisement Approved</h2>
-                    <p style="color: #333; font-size: 16px; line-height: 1.6;">
-                        Great news! Your advertisement has been approved and is now live on HireMyEscort.
-                    </p>
-                    <div style="background-color: #f0f0f0; padding: 15px; border-left: 4px solid #9333ea; margin: 20px 0;">
-                        <p style="margin: 5px 0; color: #555;"><strong>Ad Title:</strong> ${adTitle}</p>
-                        <p style="margin: 5px 0; color: #555;"><strong>Ad ID:</strong> ${adId}</p>
-                    </div>
-                    <p style="color: #333; font-size: 16px; line-height: 1.6;">
-                        Your ad is now visible to potential clients. You can manage your advertisement from your dashboard.
-                    </p>
-                    <div style="text-align: center; margin-top: 30px;">
-                        <a href="${process.env.FRONTEND_URL || "https://hiremyescort.com"}/dashboard" style="background-color: #9333ea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">View Dashboard</a>
-                    </div>
-                    <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
-                        If you have any questions, please contact our support team.
-                    </p>
-                </div>
-            </div>
-        `,
-  };
+  try {
+    const mailConfigurations = {
+      from: process.env.MAIL_USER,
+      to: email,
+      subject: "Your Advertisement Has Been Approved",
+      html: `
+              <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
+                  <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <h2 style="color: #9333ea; margin-bottom: 20px;">✓ Advertisement Approved</h2>
+                      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                          Great news! Your advertisement has been approved and is now live on HireMyEscort.
+                      </p>
+                      <div style="background-color: #f0f0f0; padding: 15px; border-left: 4px solid #9333ea; margin: 20px 0;">
+                          <p style="margin: 5px 0; color: #555;"><strong>Ad Title:</strong> ${adTitle}</p>
+                          <p style="margin: 5px 0; color: #555;"><strong>Ad ID:</strong> ${adId}</p>
+                      </div>
+                      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                          Your ad is now visible to potential clients. You can manage your advertisement from your dashboard.
+                      </p>
+                      <div style="text-align: center; margin-top: 30px;">
+                          <a href="${process.env.FRONTEND_URL || "https://hiremyescort.com"}/dashboard" style="background-color: #9333ea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">View Dashboard</a>
+                      </div>
+                      <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+                          If you have any questions, please contact our support team.
+                      </p>
+                  </div>
+              </div>
+          `,
+    };
 
-  return new Promise((resolve, reject) => {
-    transporter.sendMail(mailConfigurations, function (error, info) {
-      if (error) {
-        console.error("Error sending approval email:", error);
-        reject(error);
-      } else {
-        console.log("Ad Approval Email Sent Successfully");
-        resolve(info);
-      }
-    });
-  });
+    const info = await transporter.sendMail(mailConfigurations);
+    console.log("Ad Approval Email Sent Successfully");
+    return info;
+  } catch (error) {
+    console.error("Error sending approval email:", error);
+    throw error;
+  }
 };
 
 export const sendAdRejectionMail = async (email, adTitle, adId, reason) => {
-  const mailConfigurations = {
-    from: process.env.MAIL_USER,
-    to: email,
-    subject: "Your Advertisement Has Been Rejected",
-    html: `
-            <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
-                <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <h2 style="color: #dc2626; margin-bottom: 20px;">✗ Advertisement Rejected</h2>
-                    <p style="color: #333; font-size: 16px; line-height: 1.6;">
-                        We regret to inform you that your advertisement has been rejected.
-                    </p>
-                    <div style="background-color: #fef2f2; padding: 15px; border-left: 4px solid #dc2626; margin: 20px 0;">
-                        <p style="margin: 5px 0; color: #555;"><strong>Ad Title:</strong> ${adTitle}</p>
-                        <p style="margin: 5px 0; color: #555;"><strong>Ad ID:</strong> ${adId}</p>
-                        <p style="margin: 5px 0; color: #d32f2f;"><strong>Reason:</strong> ${reason || "Please review our posting guidelines"}</p>
-                    </div>
-                    <p style="color: #333; font-size: 16px; line-height: 1.6;">
-                        Please review the rejection reason and make necessary changes to comply with our community guidelines. You can resubmit your advertisement after making the corrections.
-                    </p>
-                    <div style="text-align: center; margin-top: 30px;">
-                        <a href="${process.env.FRONTEND_URL || "https://hiremyescort.com"}/dashboard" style="background-color: #9333ea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Go to Dashboard</a>
-                    </div>
-                    <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
-                        If you believe this is an error, please contact our support team for assistance.
-                    </p>
-                </div>
-            </div>
-        `,
-  };
+  try {
+    const mailConfigurations = {
+      from: process.env.MAIL_USER,
+      to: email,
+      subject: "Your Advertisement Has Been Rejected",
+      html: `
+              <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
+                  <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <h2 style="color: #dc2626; margin-bottom: 20px;">✗ Advertisement Rejected</h2>
+                      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                          We regret to inform you that your advertisement has been rejected.
+                      </p>
+                      <div style="background-color: #fef2f2; padding: 15px; border-left: 4px solid #dc2626; margin: 20px 0;">
+                          <p style="margin: 5px 0; color: #555;"><strong>Ad Title:</strong> ${adTitle}</p>
+                          <p style="margin: 5px 0; color: #555;"><strong>Ad ID:</strong> ${adId}</p>
+                          <p style="margin: 5px 0; color: #d32f2f;"><strong>Reason:</strong> ${reason || "Please review our posting guidelines"}</p>
+                      </div>
+                      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                          Please review the rejection reason and make necessary changes to comply with our community guidelines. You can resubmit your advertisement after making the corrections.
+                      </p>
+                      <div style="text-align: center; margin-top: 30px;">
+                          <a href="${process.env.FRONTEND_URL || "https://hiremyescort.com"}/dashboard" style="background-color: #9333ea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Go to Dashboard</a>
+                      </div>
+                      <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+                          If you believe this is an error, please contact our support team for assistance.
+                        </p>
+                  </div>
+              </div>
+          `,
+    };
 
-  return new Promise((resolve, reject) => {
-    transporter.sendMail(mailConfigurations, function (error, info) {
-      if (error) {
-        console.error("Error sending rejection email:", error);
-        reject(error);
-      } else {
-        console.log("Ad Rejection Email Sent Successfully");
-        resolve(info);
-      }
-    });
-  });
+    const info = await transporter.sendMail(mailConfigurations);
+    console.log("Ad Rejection Email Sent Successfully");
+    return info;
+  } catch (error) {
+    console.error("Error sending rejection email:", error);
+    throw error;
+  }
 };
