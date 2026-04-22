@@ -13,6 +13,7 @@ import {
 import { isAdmin, isAuthenticated } from "../middleware/isAuthenticated.js";
 import { multipleUpload } from "../middleware/multer.js";
 import { Product } from "../models/productModel.js";
+import { adLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
@@ -29,8 +30,20 @@ router.put(
 // Admin routes
 router.get("/admin/all-ads", isAuthenticated, isAdmin, getAllAdsForAdmin);
 router.get("/admin/user-ads/:userId", isAuthenticated, isAdmin, getAdsByUser);
-router.put("/admin/approve/:adId", isAuthenticated, isAdmin, approveAd);
-router.put("/admin/reject/:adId", isAuthenticated, isAdmin, rejectAd);
+router.put(
+  "/admin/approve/:adId",
+  isAuthenticated,
+  isAdmin,
+  adLimiter,
+  approveAd,
+);
+router.put(
+  "/admin/reject/:adId",
+  isAuthenticated,
+  isAdmin,
+  adLimiter,
+  rejectAd,
+);
 
 // User dashboard route
 router.get("/user/my-ads", isAuthenticated, getUserAdsForDashboard);

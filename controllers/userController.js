@@ -29,6 +29,7 @@ export const register = async (req, res) => {
       lastName,
       email,
       password: hashedPassword,
+      coins: 1000, // Award 1000 free coins to new users
     });
     const token = jwt.sign({ id: newUser._id }, process.env.SECRET_KEY, {
       expiresIn: "10m",
@@ -530,6 +531,95 @@ export const deleteUser = async (req, res) => {
       message: "User and all associated data deleted successfully",
     });
   } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deductCoins = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { coins } = req.body;
+
+    if (!coins || coins <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid coins amount",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.coins < coins) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient coins. User has ${user.coins} coins but ${coins} required`,
+      });
+    }
+
+    user.coins -= coins;
+    await user.save();
+
+    console.log(
+      `✅ Deducted ${coins} coins from user ${userId}. New balance: ${user.coins}`,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `${coins} coins deducted successfully`,
+      remainingCoins: user.coins,
+    });
+  } catch (error) {
+    console.error("Error deducting coins:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const refundCoins = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { coins } = req.body;
+
+    if (!coins || coins <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid coins amount",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    user.coins += coins;
+    await user.save();
+
+    console.log(
+      `✅ Refunded ${coins} coins to user ${userId}. New balance: ${user.coins}`,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `${coins} coins refunded successfully`,
+      totalCoins: user.coins,
+    });
+  } catch (error) {
+    console.error("Error refunding coins:", error);
     return res.status(500).json({
       success: false,
       message: error.message,
