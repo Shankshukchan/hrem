@@ -400,7 +400,7 @@ export const approveAd = async (req, res) => {
 
     // If re-approving a rejected ad, deduct coins
     const isReApproval = ad.status === "rejected";
-    const requiredCoins = isReApproval ? (coinCosts[ad.adType] || 0) : 0;
+    const requiredCoins = isReApproval ? coinCosts[ad.adType] || 0 : 0;
 
     if (isReApproval && requiredCoins > 0) {
       // Fetch user to check coin balance
@@ -425,7 +425,9 @@ export const approveAd = async (req, res) => {
       // Deduct coins from user
       user.coins -= requiredCoins;
       await user.save();
-      console.log(`✅ Deducted ${requiredCoins} coins from user ${ad.userId} on re-approval. New balance: ${user.coins}`);
+      console.log(
+        `✅ Deducted ${requiredCoins} coins from user ${ad.userId} on re-approval. New balance: ${user.coins}`,
+      );
     }
 
     // Update ad status
