@@ -382,12 +382,8 @@ export const approveAd = async (req, res) => {
   try {
     const { adId } = req.params;
 
-    const ad = await Product.findByIdAndUpdate(
-      adId,
-      { status: "approved", rejectReason: "" },
-      { new: true },
-    );
-
+    // Fetch the ad to check its current status and type
+    const ad = await Product.findById(adId);
     if (!ad) {
       return res.status(404).json({
         success: false,
@@ -395,10 +391,57 @@ export const approveAd = async (req, res) => {
       });
     }
 
+    // Coin costs for ad types
+    const coinCosts = {
+      free: 0,
+      golden: 100,
+      premium: 200,
+    };
+
+    // If re-approving a rejected ad, deduct coins
+    const isReApproval = ad.status === "rejected";
+    const requiredCoins = isReApproval ? (coinCosts[ad.adType] || 0) : 0;
+
+    if (isReApproval && requiredCoins > 0) {
+      // Fetch user to check coin balance
+      const user = await User.findById(ad.userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      // Check if user has enough coins
+      if (user.coins < requiredCoins) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient coins. User has ${user.coins} coins but ${requiredCoins} required to re-approve this ${ad.adType} ad`,
+          userCoins: user.coins,
+          requiredCoins: requiredCoins,
+        });
+      }
+
+      // Deduct coins from user
+      user.coins -= requiredCoins;
+      await user.save();
+      console.log(`✅ Deducted ${requiredCoins} coins from user ${ad.userId} on re-approval. New balance: ${user.coins}`);
+    }
+
+    // Update ad status
+    const updatedAd = await Product.findByIdAndUpdate(
+      adId,
+      { status: "approved", rejectReason: "" },
+      { new: true },
+    );
+
     // Fetch user details to get email
     const user = await User.findById(ad.userId);
     if (user && user.email) {
       try {
+        const message = isReApproval
+          ? `Your advertisement "${ad.title}" has been re-approved after rejection.`
+          : `Your advertisement "${ad.title}" has been approved.`;
         await sendAdApprovalMail(user.email, ad.title, ad._id.toString());
       } catch (emailError) {
         console.error("Failed to send approval email:", emailError);
@@ -408,10 +451,14 @@ export const approveAd = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Advertisement approved successfully",
-      ad,
+      message: isReApproval
+        ? `Advertisement re-approved successfully and ${requiredCoins} coins deducted`
+        : "Advertisement approved successfully",
+      ad: updatedAd,
+      coinsDeducted: requiredCoins,
     });
   } catch (error) {
+    console.error("Error in approveAd:", error);
     return res.status(500).json({
       success: false,
       message: error.message,
