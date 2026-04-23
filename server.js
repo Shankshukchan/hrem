@@ -6,7 +6,6 @@ import productRoute from "./routes/productRoute.js";
 import statesCitiesRoute from "./routes/statesCitiesRoute.js";
 import paymentRoute from "./routes/paymentRoute.js";
 import cors from "cors";
-import { generalLimiter, authLimiter } from "./middleware/rateLimiter.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,15 +14,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-
-// Apply general rate limiter to all API routes
-app.use("/api/v1/", generalLimiter);
-
-// Apply stricter auth limiter to auth endpoints
-app.use("/api/v1/user/login", authLimiter);
-app.use("/api/v1/user/register", authLimiter);
-app.use("/api/v1/user/forgot-password", authLimiter);
-app.use("/api/v1/user/verify-otp", authLimiter);
 
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/product", productRoute);
