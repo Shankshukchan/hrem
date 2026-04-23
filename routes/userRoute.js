@@ -1,6 +1,7 @@
 import express from "express";
 import {
   allUser,
+  getLatestUsers,
   changePassword,
   forgotPassword,
   getUserById,
@@ -29,6 +30,7 @@ router.post("/forgot-password", forgotPassword);
 router.post("/verify-otp/:email", verifyOTP);
 router.post("/change-password/:email", changePassword);
 router.get("/all-user", isAuthenticated, isAdmin, allUser);
+router.get("/latest-users", isAuthenticated, isAdmin, getLatestUsers);
 router.get("/get-user/:userId", getUserById);
 router.put("/update/:userId", isAuthenticated, singleUpload, updateUser);
 router.delete("/delete-user/:userId", isAuthenticated, isAdmin, deleteUser);

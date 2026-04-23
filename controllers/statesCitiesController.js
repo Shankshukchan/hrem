@@ -336,3 +336,113 @@ export const getCitySEO = async (req, res) => {
     });
   }
 };
+
+export const toggleTopCity = async (req, res) => {
+  try {
+    const { stateId, cityId, isTopCity } = req.body;
+
+    if (!stateId || !cityId) {
+      return res.status(400).json({
+        success: false,
+        message: "State ID and City ID are required",
+      });
+    }
+
+    const state = await State.findById(stateId);
+
+    if (!state) {
+      return res.status(404).json({
+        success: false,
+        message: "State not found",
+      });
+    }
+
+    const city = state.cities.id(cityId);
+
+    if (!city) {
+      return res.status(404).json({
+        success: false,
+        message: "City not found",
+      });
+    }
+
+    city.isTopCity = isTopCity;
+    await state.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "City top status updated successfully",
+      city,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getTopCities = async (req, res) => {
+  try {
+    const states = await State.find();
+
+    const topCities = [];
+
+    states.forEach((state) => {
+      const stateTopCities = state.cities
+        .filter((city) => city.isTopCity)
+        .map((city) => ({
+          ...city.toObject(),
+          stateName: state.name,
+          stateId: state._id,
+        }));
+      topCities.push(...stateTopCities);
+    });
+
+    return res.status(200).json({
+      success: true,
+      topCities,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getTopCitiesByState = async (req, res) => {
+  try {
+    const { stateName } = req.query;
+
+    if (!stateName) {
+      return res.status(400).json({
+        success: false,
+        message: "State name is required",
+      });
+    }
+
+    const state = await State.findOne({
+      name: { $regex: new RegExp(`^${stateName}$`, "i") },
+    });
+
+    if (!state) {
+      return res.status(404).json({
+        success: false,
+        message: "State not found",
+      });
+    }
+
+    const topCities = state.cities.filter((city) => city.isTopCity);
+
+    return res.status(200).json({
+      success: true,
+      topCities,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

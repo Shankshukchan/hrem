@@ -5,6 +5,10 @@ const citieSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  isTopCity: {
+    type: Boolean,
+    default: false,
+  },
   seo: {
     title: {
       type: String,
