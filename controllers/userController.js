@@ -100,22 +100,43 @@ export const verify = async (req, res) => {
 export const reVerify = async (req, res) => {
   try {
     const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
     const user = await User.findOne({ email });
+
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: "User not found",
+        message: "User with this email not found",
       });
     }
+
+    // Check if user is already verified
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "This email is already verified",
+      });
+    }
+
     const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY, {
       expiresIn: "10m",
     });
+
     await verifyEmail(token, email); // send email here
+
     user.token = token;
     await user.save();
+
     return res.status(200).json({
       success: true,
-      message: "Verification email sent again successfully",
+      message: "Verification email sent successfully",
       token: user.token,
     });
   } catch (error) {

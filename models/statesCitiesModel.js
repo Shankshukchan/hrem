@@ -5,6 +5,24 @@ const citieSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  seo: {
+    title: {
+      type: String,
+      default: "",
+    },
+    description: {
+      type: String,
+      default: "",
+    },
+    keywords: {
+      type: String,
+      default: "",
+    },
+    htmlSnippet: {
+      type: String,
+      default: "",
+    },
+  },
 });
 
 const stateSchema = new mongoose.Schema({

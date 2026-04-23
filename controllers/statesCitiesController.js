@@ -203,3 +203,114 @@ export const deleteCity = async (req, res) => {
     });
   }
 };
+
+export const updateCitySEO = async (req, res) => {
+  try {
+    const { stateName, cityName, title, description, keywords, htmlSnippet } =
+      req.body;
+
+    if (!stateName || !cityName) {
+      return res.status(400).json({
+        success: false,
+        message: "State name and city name are required",
+      });
+    }
+
+    // Find state
+    const state = await State.findOne({
+      name: { $regex: new RegExp(`^${stateName}$`, "i") },
+    });
+
+    if (!state) {
+      return res.status(404).json({
+        success: false,
+        message: "State not found",
+      });
+    }
+
+    // Find city in state
+    const city = state.cities.find(
+      (c) => c.name.toLowerCase() === cityName.toLowerCase(),
+    );
+
+    if (!city) {
+      return res.status(404).json({
+        success: false,
+        message: "City not found",
+      });
+    }
+
+    // Update SEO data
+    city.seo = {
+      title: title || "",
+      description: description || "",
+      keywords: keywords || "",
+      htmlSnippet: htmlSnippet || "",
+    };
+
+    await state.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "City SEO updated successfully",
+      city,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getCitySEO = async (req, res) => {
+  try {
+    const { stateName, cityName } = req.query;
+
+    if (!stateName || !cityName) {
+      return res.status(400).json({
+        success: false,
+        message: "State name and city name are required",
+      });
+    }
+
+    // Find state
+    const state = await State.findOne({
+      name: { $regex: new RegExp(`^${stateName}$`, "i") },
+    });
+
+    if (!state) {
+      return res.status(404).json({
+        success: false,
+        message: "State not found",
+      });
+    }
+
+    // Find city in state
+    const city = state.cities.find(
+      (c) => c.name.toLowerCase() === cityName.toLowerCase(),
+    );
+
+    if (!city) {
+      return res.status(404).json({
+        success: false,
+        message: "City not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      seo: city.seo || {
+        title: "",
+        description: "",
+        keywords: "",
+        htmlSnippet: "",
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
