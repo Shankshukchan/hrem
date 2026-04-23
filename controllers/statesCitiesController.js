@@ -228,12 +228,20 @@ export const updateCitySEO = async (req, res) => {
       });
     }
 
-    // Find city in state
-    const city = state.cities.find(
-      (c) => c.name.toLowerCase() === cityName.toLowerCase(),
-    );
+    // Find city in state with better matching (trim and normalize)
+    const normalizedSearchCity = cityName.toLowerCase().trim();
+    const cityIndex = state.cities.findIndex((c) => {
+      const normalizedCityName = c.name.toLowerCase().trim();
+      // Try exact match first
+      if (normalizedCityName === normalizedSearchCity) return true;
+      // Try partial match for cities with multiple words
+      return (
+        normalizedCityName.replace(/\s+/g, " ") ===
+        normalizedSearchCity.replace(/\s+/g, " ")
+      );
+    });
 
-    if (!city) {
+    if (cityIndex === -1) {
       return res.status(404).json({
         success: false,
         message: "City not found",
@@ -241,7 +249,7 @@ export const updateCitySEO = async (req, res) => {
     }
 
     // Update SEO data
-    city.seo = {
+    state.cities[cityIndex].seo = {
       title: title || "",
       description: description || "",
       keywords: keywords || "",
@@ -253,7 +261,7 @@ export const updateCitySEO = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "City SEO updated successfully",
-      city,
+      city: state.cities[cityIndex],
     });
   } catch (error) {
     return res.status(500).json({
@@ -286,15 +294,29 @@ export const getCitySEO = async (req, res) => {
       });
     }
 
-    // Find city in state
-    const city = state.cities.find(
-      (c) => c.name.toLowerCase() === cityName.toLowerCase(),
-    );
+    // Find city in state with better matching (trim and normalize)
+    const normalizedSearchCity = cityName.toLowerCase().trim();
+    const city = state.cities.find((c) => {
+      const normalizedCityName = c.name.toLowerCase().trim();
+      // Try exact match first
+      if (normalizedCityName === normalizedSearchCity) return true;
+      // Try partial match for cities with multiple words
+      return (
+        normalizedCityName.replace(/\s+/g, " ") ===
+        normalizedSearchCity.replace(/\s+/g, " ")
+      );
+    });
 
     if (!city) {
-      return res.status(404).json({
-        success: false,
-        message: "City not found",
+      return res.status(200).json({
+        success: true,
+        seo: {
+          title: "",
+          description: "",
+          keywords: "",
+          htmlSnippet: "",
+        },
+        message: `No SEO data found for ${cityName}, returning empty SEO object`,
       });
     }
 
