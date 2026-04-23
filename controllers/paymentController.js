@@ -1,6 +1,7 @@
 import { User } from "../models/userModel.js";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import { calculateCoins } from "../utils/coinCalculator.js";
 
 // Unlimit API configuration
 const UNLIMIT_API_KEY = process.env.UNLIMIT_API_KEY;
@@ -169,8 +170,10 @@ export const verifyUnlimitPayment = async (req, res) => {
         });
       }
 
-      // Calculate coins (1 unit = 1 coin)
-      const coins = Math.floor(paymentData.amount / 100);
+      // Calculate coins with bonus packages
+      const coinsData = calculateCoins(paymentData.amount);
+      const { coins, bonus, baseCoins, isBonusPackage, amountInRupees } =
+        coinsData;
 
       // Add coins to user
       const user = await User.findByIdAndUpdate(
@@ -191,10 +194,14 @@ export const verifyUnlimitPayment = async (req, res) => {
         message: "Payment verified and coins added successfully",
         coins: user.coins,
         addedCoins: coins,
+        baseCoins,
+        bonus,
+        isBonusPackage,
         payment: {
           id: paymentId,
           status: paymentData.status,
           amount: paymentData.amount,
+          amountInRupees,
         },
       });
     } catch (error) {
@@ -359,8 +366,10 @@ export const verifyRazorpayPayment = async (req, res) => {
         });
       }
 
-      // Calculate coins (1 rupee = 1 coin)
-      const coins = Math.floor(payment.amount / 100);
+      // Calculate coins with bonus packages
+      const coinsData = calculateCoins(payment.amount);
+      const { coins, bonus, baseCoins, isBonusPackage, amountInRupees } =
+        coinsData;
 
       // Add coins to user account
       const user = await User.findByIdAndUpdate(
@@ -381,10 +390,14 @@ export const verifyRazorpayPayment = async (req, res) => {
         message: "Payment verified and coins added successfully",
         coins: user.coins,
         addedCoins: coins,
+        baseCoins,
+        bonus,
+        isBonusPackage,
         payment: {
           id: paymentId,
           status: payment.status,
           amount: payment.amount,
+          amountInRupees,
           orderId: orderId,
         },
       });
