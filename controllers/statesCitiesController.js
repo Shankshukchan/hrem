@@ -79,6 +79,8 @@ export const addCityToState = async (req, res) => {
     // Add city to state
     state.cities.push({
       name: cityName.charAt(0).toUpperCase() + cityName.slice(1),
+      locations: [],
+      isTopCity: false,
     });
 
     await state.save();
@@ -497,6 +499,7 @@ export const addLocationToCity = async (req, res) => {
     // Add location to city
     city.locations.push({
       name: locationName.charAt(0).toUpperCase() + locationName.slice(1),
+      createdAt: new Date(),
     });
 
     await state.save();
@@ -533,7 +536,7 @@ export const getLocationsByCity = async (req, res) => {
     if (!state) {
       return res.status(404).json({
         success: false,
-        message: "State not found",
+        message: `State "${stateName}" not found`,
       });
     }
 
@@ -545,14 +548,16 @@ export const getLocationsByCity = async (req, res) => {
     if (!city) {
       return res.status(404).json({
         success: false,
-        message: "City not found in this state",
+        message: `City "${cityName}" not found in state "${stateName}"`,
       });
     }
 
-    // Return success with empty array if no locations yet (not an error)
+    // Return success with locations (empty array if no locations yet)
+    const locations = city.locations || [];
     return res.status(200).json({
       success: true,
-      locations: city.locations || [],
+      locations: locations,
+      message: `Found ${locations.length} location(s) in ${cityName}`,
     });
   } catch (error) {
     return res.status(500).json({
