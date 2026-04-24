@@ -9,6 +9,18 @@ const citieSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  locations: [
+    {
+      name: {
+        type: String,
+        required: true,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
   seo: {
     title: {
       type: String,

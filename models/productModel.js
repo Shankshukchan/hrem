@@ -36,6 +36,7 @@ const productSchema = new mongoose.Schema(
       default: "free",
     },
     rejectReason: { type: String, default: "" },
+    coinsRefunded: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

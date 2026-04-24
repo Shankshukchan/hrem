@@ -446,3 +446,180 @@ export const getTopCitiesByState = async (req, res) => {
     });
   }
 };
+
+export const addLocationToCity = async (req, res) => {
+  try {
+    const { stateName, cityName, locationName } = req.body;
+
+    if (!stateName || !cityName || !locationName) {
+      return res.status(400).json({
+        success: false,
+        message: "State name, city name, and location name are required",
+      });
+    }
+
+    // Find state (case-insensitive)
+    const state = await State.findOne({
+      name: { $regex: new RegExp(`^${stateName}$`, "i") },
+    });
+
+    if (!state) {
+      return res.status(404).json({
+        success: false,
+        message: "State not found",
+      });
+    }
+
+    // Find city in state (case-insensitive)
+    const city = state.cities.find(
+      (c) => c.name.toLowerCase() === cityName.toLowerCase(),
+    );
+
+    if (!city) {
+      return res.status(404).json({
+        success: false,
+        message: "City not found in this state",
+      });
+    }
+
+    // Check if location already exists in this city
+    const locationExists = city.locations.some(
+      (loc) => loc.name.toLowerCase() === locationName.toLowerCase(),
+    );
+
+    if (locationExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Location already exists in this city",
+      });
+    }
+
+    // Add location to city
+    city.locations.push({
+      name: locationName.charAt(0).toUpperCase() + locationName.slice(1),
+    });
+
+    await state.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Location added successfully",
+      city,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getLocationsByCity = async (req, res) => {
+  try {
+    const { stateName, cityName } = req.query;
+
+    if (!stateName || !cityName) {
+      return res.status(400).json({
+        success: false,
+        message: "State name and city name are required",
+      });
+    }
+
+    // Find state (case-insensitive)
+    const state = await State.findOne({
+      name: { $regex: new RegExp(`^${stateName}$`, "i") },
+    });
+
+    if (!state) {
+      return res.status(404).json({
+        success: false,
+        message: "State not found",
+      });
+    }
+
+    // Find city in state (case-insensitive)
+    const city = state.cities.find(
+      (c) => c.name.toLowerCase() === cityName.toLowerCase(),
+    );
+
+    if (!city) {
+      return res.status(404).json({
+        success: false,
+        message: "City not found in this state",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      locations: city.locations || [],
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deleteLocation = async (req, res) => {
+  try {
+    const { stateName, cityName, locationName } = req.body;
+
+    if (!stateName || !cityName || !locationName) {
+      return res.status(400).json({
+        success: false,
+        message: "State name, city name, and location name are required",
+      });
+    }
+
+    // Find state (case-insensitive)
+    const state = await State.findOne({
+      name: { $regex: new RegExp(`^${stateName}$`, "i") },
+    });
+
+    if (!state) {
+      return res.status(404).json({
+        success: false,
+        message: "State not found",
+      });
+    }
+
+    // Find city in state (case-insensitive)
+    const city = state.cities.find(
+      (c) => c.name.toLowerCase() === cityName.toLowerCase(),
+    );
+
+    if (!city) {
+      return res.status(404).json({
+        success: false,
+        message: "City not found in this state",
+      });
+    }
+
+    // Find and remove location
+    const locationIndex = city.locations.findIndex(
+      (loc) => loc.name.toLowerCase() === locationName.toLowerCase(),
+    );
+
+    if (locationIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Location not found in this city",
+      });
+    }
+
+    city.locations.splice(locationIndex, 1);
+    await state.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Location deleted successfully",
+      city,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

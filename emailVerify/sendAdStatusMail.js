@@ -48,12 +48,30 @@ export const sendAdApprovalMail = async (email, adTitle, adId) => {
   }
 };
 
-export const sendAdRejectionMail = async (email, adTitle, adId, reason) => {
+export const sendAdRejectionMail = async (
+  email,
+  adTitle,
+  adId,
+  reason,
+  refundAmount = 0,
+  remainingCoins = 0,
+) => {
   try {
+    let refundHTML = "";
+    if (refundAmount > 0) {
+      refundHTML = `
+                      <div style="background-color: #d4edda; padding: 15px; border-left: 4px solid #28a745; margin: 20px 0;">
+                          <h3 style="color: #155724; margin-top: 0;">💰 Coins Refunded</h3>
+                          <p style="margin: 5px 0; color: #155724;"><strong>Refund Amount:</strong> ${refundAmount} coins</p>
+                          <p style="margin: 5px 0; color: #155724;"><strong>Your New Balance:</strong> ${remainingCoins} coins</p>
+                      </div>
+                  `;
+    }
+
     const mailConfigurations = {
       from: process.env.MAIL_USER,
       to: email,
-      subject: "Your Advertisement Has Been Rejected",
+      subject: `Your Advertisement Has Been Rejected${refundAmount > 0 ? " - Coins Refunded" : ""}`,
       html: `
               <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
                   <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -66,6 +84,7 @@ export const sendAdRejectionMail = async (email, adTitle, adId, reason) => {
                           <p style="margin: 5px 0; color: #555;"><strong>Ad ID:</strong> ${adId}</p>
                           <p style="margin: 5px 0; color: #d32f2f;"><strong>Reason:</strong> ${reason || "Please review our posting guidelines"}</p>
                       </div>
+                      ${refundHTML}
                       <p style="color: #333; font-size: 16px; line-height: 1.6;">
                           Please review the rejection reason and make necessary changes to comply with our community guidelines. You can resubmit your advertisement after making the corrections.
                       </p>

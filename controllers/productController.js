@@ -66,9 +66,60 @@ export const addProduct = async (req, res) => {
       }
 
       // Deduct coins from user account
-      await User.findByIdAndUpdate(userId, {
-        $inc: { coins: -coinsNeeded },
-      });
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $inc: { coins: -coinsNeeded } },
+        { new: true },
+      );
+
+      // Send email to user about coin deduction
+      try {
+        if (user && user.email) {
+          const nodemailer = require("nodemailer");
+          const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+              user: process.env.MAIL_USER,
+              pass: process.env.MAIL_PASS,
+            },
+          });
+
+          const mailConfigurations = {
+            from: process.env.MAIL_USER,
+            to: user.email,
+            subject: "Coins Deducted - Advertisement Posted",
+            html: `
+              <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
+                  <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <h2 style="color: #9333ea; margin-bottom: 20px;">💰 Coins Deducted</h2>
+                      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                          Your advertisement has been successfully uploaded. The following coins have been deducted from your account:
+                      </p>
+                      <div style="background-color: #f0f0f0; padding: 15px; border-left: 4px solid #9333ea; margin: 20px 0;">
+                          <p style="margin: 5px 0; color: #555;"><strong>Ad Type:</strong> ${adType}</p>
+                          <p style="margin: 5px 0; color: #555;"><strong>Coins Deducted:</strong> ${coinsNeeded}</p>
+                          <p style="margin: 5px 0; color: #555;"><strong>Your Remaining Coins:</strong> ${updatedUser.coins}</p>
+                      </div>
+                      <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                          Your ad is currently under review. You will receive another email once it is approved or rejected.
+                      </p>
+                      <div style="text-align: center; margin-top: 30px;">
+                          <a href="${process.env.FRONTEND_URL || "https://hiremyescort.com"}/dashboard" style="background-color: #9333ea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">View Dashboard</a>
+                      </div>
+                      <p style="color: #999; font-size: 12px; margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+                          If you have any questions, please contact our support team.
+                      </p>
+                  </div>
+              </div>
+            `,
+          };
+
+          await transporter.sendMail(mailConfigurations);
+        }
+      } catch (emailError) {
+        console.error("Failed to send coin deduction email:", emailError);
+        // Continue anyway - don't fail the upload if email fails
+      }
     }
 
     // Handle multiple image uploads
@@ -482,7 +533,7 @@ export const rejectAd = async (req, res) => {
       });
     }
 
-    // Refund coins if ad is paid (golden or premium)
+    // Refund coins if ad is paid (golden or premium) and hasn't been refunded yet
     const coinCosts = {
       free: 0,
       golden: 100,
@@ -490,31 +541,47 @@ export const rejectAd = async (req, res) => {
     };
 
     const refundAmount = coinCosts[ad.adType] || 0;
-    if (refundAmount > 0) {
+    let updatedUser = null;
+
+    if (refundAmount > 0 && !ad.coinsRefunded) {
       // Refund coins to user
-      await User.findByIdAndUpdate(
+      updatedUser = await User.findByIdAndUpdate(
         ad.userId,
         { $inc: { coins: refundAmount } },
         { new: true },
       );
+    } else if (!ad.coinsRefunded) {
+      // Get user even if no refund for email
+      updatedUser = await User.findById(ad.userId);
     }
 
-    // Reject the ad
+    // Reject the ad and mark coins as refunded if applicable
     const updatedAd = await Product.findByIdAndUpdate(
       adId,
-      { status: "rejected", rejectReason: reason || "" },
+      {
+        status: "rejected",
+        rejectReason: reason || "",
+        coinsRefunded: refundAmount > 0 ? true : false,
+      },
       { new: true },
     );
 
-    // Send rejection email to user
+    // Send rejection email to user with refund information
     const user = await User.findById(ad.userId);
     if (user && user.email) {
       try {
+        const remainingCoins = updatedUser
+          ? updatedUser.coins
+          : user
+            ? user.coins
+            : 0;
         await sendAdRejectionMail(
           user.email,
           ad.title,
           ad._id.toString(),
           reason || "",
+          refundAmount,
+          remainingCoins,
         );
       } catch (emailError) {
         console.error("Failed to send rejection email:", emailError);
