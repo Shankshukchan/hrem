@@ -533,7 +533,18 @@ export const rejectAd = async (req, res) => {
       });
     }
 
-    // Refund coins if ad is paid (golden or premium) and hasn't been refunded yet
+    // Check if this ad has already been rejected with refund
+    if (ad.status === "rejected") {
+      // Ad already rejected, no need to refund again
+      return res.status(200).json({
+        success: true,
+        message: "Advertisement already rejected",
+        ad: ad,
+        refundedCoins: 0,
+      });
+    }
+
+    // Refund coins if ad is paid (golden or premium)
     const coinCosts = {
       free: 0,
       golden: 100,
@@ -542,20 +553,24 @@ export const rejectAd = async (req, res) => {
 
     const refundAmount = coinCosts[ad.adType] || 0;
     let updatedUser = null;
+    let refundedAmount = 0;
 
-    if (refundAmount > 0 && !ad.coinsRefunded) {
+    if (refundAmount > 0) {
       // Refund coins to user
       updatedUser = await User.findByIdAndUpdate(
         ad.userId,
         { $inc: { coins: refundAmount } },
         { new: true },
       );
-    } else if (!ad.coinsRefunded) {
-      // Get user even if no refund for email
+      refundedAmount = refundAmount;
+    }
+
+    // Get user for email
+    if (!updatedUser) {
       updatedUser = await User.findById(ad.userId);
     }
 
-    // Reject the ad and mark coins as refunded if applicable
+    // Reject the ad and mark coins as refunded (once)
     const updatedAd = await Product.findByIdAndUpdate(
       adId,
       {
@@ -580,7 +595,7 @@ export const rejectAd = async (req, res) => {
           ad.title,
           ad._id.toString(),
           reason || "",
-          refundAmount,
+          refundedAmount,
           remainingCoins,
         );
       } catch (emailError) {
@@ -591,9 +606,9 @@ export const rejectAd = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `Advertisement rejected successfully${refundAmount > 0 ? ` and ${refundAmount} coins refunded to user` : ""}`,
+      message: `Advertisement rejected successfully${refundedAmount > 0 ? ` and ${refundedAmount} coins refunded to user` : ""}`,
       ad: updatedAd,
-      refundedCoins: refundAmount,
+      refundedCoins: refundedAmount,
     });
   } catch (error) {
     return res.status(500).json({
