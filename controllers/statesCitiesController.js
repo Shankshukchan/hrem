@@ -549,6 +549,7 @@ export const getLocationsByCity = async (req, res) => {
       });
     }
 
+    // Return success with empty array if no locations yet (not an error)
     return res.status(200).json({
       success: true,
       locations: city.locations || [],
