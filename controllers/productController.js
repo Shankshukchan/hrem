@@ -371,12 +371,12 @@ export const updateProduct = async (req, res) => {
             {
               overlay: {
                 font_family: "arial",
-                font_size: 50,
-                font_weight: "bold",
+                font_size: 30,
+                
                 text: "HireMyEscort.com",
-                background: "rgba(0,0,0,0.3)",
+                background: "rgba(0, 0, 0, 0.3)",
               },
-              color: "white",
+              color: "rgba(255, 255, 255, 0.67)",
               gravity: "center",
               effect: "outline:3",
             },
