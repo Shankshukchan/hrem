@@ -315,21 +315,29 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // Handle coin deduction if ad type is changed to a paid type
+    // Handle coin deduction
     const coinCosts = {
       free: 0,
       golden: 100,
       premium: 200,
     };
 
-    if (adType && adType !== product.adType && adType !== "free") {
+    // Check if this is a resubmission of a rejected or approved ad
+    const isResubmission =
+      product.status === "rejected" || product.status === "approved";
+    const currentAdType = adType || product.adType;
+    const coinsNeeded = coinCosts[currentAdType] || 0;
+
+    // Deduct coins if:
+    // 1. Ad type is changed to a paid type, OR
+    // 2. Resubmitting a rejected/approved paid ad
+    if (coinsNeeded > 0 && (adType !== product.adType || isResubmission)) {
       const user = await User.findById(userId);
-      const coinsNeeded = coinCosts[adType];
 
       if (user.coins < coinsNeeded) {
         return res.status(400).json({
           success: false,
-          message: `Insufficient coins. You need ${coinsNeeded} coins for a ${adType} ad. You have ${user.coins} coins.`,
+          message: `Insufficient coins. You need ${coinsNeeded} coins for a ${currentAdType} ad. You have ${user.coins} coins.`,
         });
       }
 
@@ -337,6 +345,10 @@ export const updateProduct = async (req, res) => {
       await User.findByIdAndUpdate(userId, {
         $inc: { coins: -coinsNeeded },
       });
+
+      console.log(
+        `✅ Deducted ${coinsNeeded} coins from user ${userId} on ad resubmission. Ad status was: ${product.status}`,
+      );
     }
 
     let updatedImages = [];
@@ -372,7 +384,7 @@ export const updateProduct = async (req, res) => {
               overlay: {
                 font_family: "arial",
                 font_size: 30,
-                
+
                 text: "HireMyEscort.com",
                 background: "rgba(0, 0, 0, 0.3)",
               },
