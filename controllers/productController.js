@@ -128,16 +128,30 @@ export const addProduct = async (req, res) => {
         const fileUri = getDataUri(file);
         const result = await cloudinary.uploader.upload(fileUri, {
           folder: "mern_products", // cloudinary folder name
-          overlay: {
-            font_family: "arial",
-            font_size: 40,
-            font_weight: "bold",
-            text: "HireMyEscort.com",
-            color: "white",
-            opacity: 0.5,
-          },
-          gravity: "center",
-          flags: "layer_apply",
+          transformation: [
+            {
+              // Add logo overlay at the top
+              overlay: "https://hiremyescort.com/logo.png",
+              width: 80,
+              height: 80,
+              gravity: "north",
+              y: 10,
+              opacity: 0.7,
+            },
+            {
+              // Add text watermark with white color
+              overlay: {
+                font_family: "arial",
+                font_size: 40,
+                font_weight: "bold",
+                text: "HireMyEscort.com",
+                color: "white",
+              },
+              gravity: "south",
+              y: 20,
+              opacity: 0.8,
+            },
+          ],
         });
 
         productImg.push({
@@ -354,16 +368,30 @@ export const updateProduct = async (req, res) => {
         const fileUri = getDataUri(file);
         const result = await cloudinary.uploader.upload(fileUri, {
           folder: "mern_products",
-          overlay: {
-            font_family: "arial",
-            font_size: 40,
-            font_weight: "bold",
-            text: "HireMyEscort.com",
-            color: "white",
-            opacity: 0.5,
-          },
-          gravity: "center",
-          flags: "layer_apply",
+          transformation: [
+            {
+              // Add logo overlay at the top
+              overlay: "https://hiremyescort.com/logo.png",
+              width: 80,
+              height: 80,
+              gravity: "north",
+              y: 10,
+              opacity: 0.7,
+            },
+            {
+              // Add text watermark with white color
+              overlay: {
+                font_family: "arial",
+                font_size: 40,
+                font_weight: "bold",
+                text: "HireMyEscort.com",
+                color: "white",
+              },
+              gravity: "south",
+              y: 20,
+              opacity: 0.8,
+            },
+          ],
         });
         updatedImages.push({
           url: result.secure_url,
@@ -553,11 +581,12 @@ export const rejectAd = async (req, res) => {
     }
 
     // Check if this ad has already been rejected with refund
-    if (ad.status === "rejected") {
-      // Ad already rejected, no need to refund again
+    if (ad.status === "rejected" && ad.coinsRefunded) {
+      // Ad already rejected and coins already refunded, no need to refund again
       return res.status(200).json({
         success: true,
-        message: "Advertisement already rejected",
+        message:
+          "Advertisement already rejected. Coins were previously refunded.",
         ad: ad,
         refundedCoins: 0,
       });
