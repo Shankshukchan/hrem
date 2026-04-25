@@ -5,6 +5,7 @@ import userRoute from "./routes/userRoute.js";
 import productRoute from "./routes/productRoute.js";
 import statesCitiesRoute from "./routes/statesCitiesRoute.js";
 import paymentRoute from "./routes/paymentRoute.js";
+import contactRoute from "./routes/contactRoute.js";
 import cors from "cors";
 
 const app = express();
@@ -19,6 +20,7 @@ app.use("/api/v1/user", userRoute);
 app.use("/api/v1/product", productRoute);
 app.use("/api/v1/location", statesCitiesRoute);
 app.use("/api/v1/payment", paymentRoute);
+app.use("/api/v1/contact", contactRoute);
 app.get("/cron-job", (req, res) => {
   console.log("✅ Cron job hit at:", new Date().toLocaleString());
   res.status(200).send("Cron job executed");

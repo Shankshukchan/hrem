@@ -128,6 +128,16 @@ export const addProduct = async (req, res) => {
         const fileUri = getDataUri(file);
         const result = await cloudinary.uploader.upload(fileUri, {
           folder: "mern_products", // cloudinary folder name
+          overlay: {
+            font_family: "arial",
+            font_size: 40,
+            font_weight: "bold",
+            text: "HireMyEscort.com",
+            color: "white",
+            opacity: 0.5,
+          },
+          gravity: "center",
+          flags: "layer_apply",
         });
 
         productImg.push({
@@ -344,6 +354,16 @@ export const updateProduct = async (req, res) => {
         const fileUri = getDataUri(file);
         const result = await cloudinary.uploader.upload(fileUri, {
           folder: "mern_products",
+          overlay: {
+            font_family: "arial",
+            font_size: 40,
+            font_weight: "bold",
+            text: "HireMyEscort.com",
+            color: "white",
+            opacity: 0.5,
+          },
+          gravity: "center",
+          flags: "layer_apply",
         });
         updatedImages.push({
           url: result.secure_url,
