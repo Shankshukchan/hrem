@@ -128,30 +128,16 @@ export const addProduct = async (req, res) => {
         const fileUri = getDataUri(file);
         const result = await cloudinary.uploader.upload(fileUri, {
           folder: "mern_products", // cloudinary folder name
-          transformation: [
-            {
-              // Add logo overlay at the top
-              overlay: "https://hiremyescort.com/logo.png",
-              width: 80,
-              height: 80,
-              gravity: "north",
-              y: 10,
-              opacity: 0.7,
-            },
-            {
-              // Add text watermark with white color
-              overlay: {
-                font_family: "arial",
-                font_size: 40,
-                font_weight: "bold",
-                text: "HireMyEscort.com",
-                color: "white",
-              },
-              gravity: "south",
-              y: 20,
-              opacity: 0.8,
-            },
-          ],
+          overlay: {
+            font_family: "arial",
+            font_size: 35,
+            font_weight: "bold",
+            text: "HireMyEscort.com",
+            color: "white",
+          },
+          gravity: "center",
+          opacity: 0.7,
+          flags: "layer_apply",
         });
 
         productImg.push({
@@ -368,30 +354,16 @@ export const updateProduct = async (req, res) => {
         const fileUri = getDataUri(file);
         const result = await cloudinary.uploader.upload(fileUri, {
           folder: "mern_products",
-          transformation: [
-            {
-              // Add logo overlay at the top
-              overlay: "https://hiremyescort.com/logo.png",
-              width: 80,
-              height: 80,
-              gravity: "north",
-              y: 10,
-              opacity: 0.7,
-            },
-            {
-              // Add text watermark with white color
-              overlay: {
-                font_family: "arial",
-                font_size: 40,
-                font_weight: "bold",
-                text: "HireMyEscort.com",
-                color: "white",
-              },
-              gravity: "south",
-              y: 20,
-              opacity: 0.8,
-            },
-          ],
+          overlay: {
+            font_family: "arial",
+            font_size: 35,
+            font_weight: "bold",
+            text: "HireMyEscort.com",
+            color: "white",
+          },
+          gravity: "center",
+          opacity: 0.7,
+          flags: "layer_apply",
         });
         updatedImages.push({
           url: result.secure_url,
