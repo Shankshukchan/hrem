@@ -52,10 +52,11 @@ export const addProduct = async (req, res) => {
       premium: 200,
     };
 
+    const coinsNeeded = coinCosts[adType] || 0;
+
     // Check if user has enough coins for paid ads
     if (adType !== "free") {
       const user = await User.findById(userId);
-      const coinsNeeded = coinCosts[adType];
 
       if (user.coins < coinsNeeded) {
         return res.status(400).json({
@@ -63,9 +64,44 @@ export const addProduct = async (req, res) => {
           message: `Insufficient coins. You need ${coinsNeeded} coins for a ${adType} ad. You have ${user.coins} coins.`,
         });
       }
+    }
 
-      // Deduct coins from user account
-      const updatedUser = await User.findByIdAndUpdate(
+    // Handle multiple image uploads FIRST (before deducting coins)
+    let productImg = [];
+    if (req.files && req.files.length > 0) {
+      for (let file of req.files) {
+        const fileUri = getDataUri(file);
+        const result = await cloudinary.uploader.upload(fileUri, {
+          folder: "mern_products",
+          quality: "auto",
+          fetch_format: "auto",
+          transformation: [
+            {
+              overlay: {
+                font_family: "arial",
+                font_size: 50,
+                font_weight: "bold",
+                text: "HireMyEscort.com",
+                background: "rgba(0,0,0,0.3)",
+              },
+              color: "white",
+              gravity: "center",
+              effect: "outline:3",
+            },
+          ],
+        });
+
+        productImg.push({
+          url: result.secure_url,
+          public_id: result.public_id,
+        });
+      }
+    }
+
+    // NOW deduct coins ONLY after successful image upload
+    let updatedUser = null;
+    if (adType !== "free") {
+      updatedUser = await User.findByIdAndUpdate(
         userId,
         { $inc: { coins: -coinsNeeded } },
         { new: true },
@@ -73,6 +109,7 @@ export const addProduct = async (req, res) => {
 
       // Send email to user about coin deduction
       try {
+        const user = await User.findById(userId);
         if (user && user.email) {
           const nodemailer = require("nodemailer");
           const transporter = nodemailer.createTransport({
@@ -97,7 +134,7 @@ export const addProduct = async (req, res) => {
                       <div style="background-color: #f0f0f0; padding: 15px; border-left: 4px solid #9333ea; margin: 20px 0;">
                           <p style="margin: 5px 0; color: #555;"><strong>Ad Type:</strong> ${adType}</p>
                           <p style="margin: 5px 0; color: #555;"><strong>Coins Deducted:</strong> ${coinsNeeded}</p>
-                          <p style="margin: 5px 0; color: #555;"><strong>Your Remaining Coins:</strong> ${updatedUser.coins}</p>
+                          <p style="margin: 5px 0; color: #555;"><strong>Your Remaining Coins:</strong> ${updatedUser?.coins || 0}</p>
                       </div>
                       <p style="color: #333; font-size: 16px; line-height: 1.6;">
                           Your ad is currently under review. You will receive another email once it is approved or rejected.
@@ -118,32 +155,6 @@ export const addProduct = async (req, res) => {
       } catch (emailError) {
         console.error("Failed to send coin deduction email:", emailError);
         // Continue anyway - don't fail the upload if email fails
-      }
-    }
-
-    // Handle multiple image uploads
-    let productImg = [];
-    if (req.files && req.files.length > 0) {
-      for (let file of req.files) {
-        const fileUri = getDataUri(file);
-        const result = await cloudinary.uploader.upload(fileUri, {
-          folder: "mern_products", // cloudinary folder name
-          overlay: {
-            font_family: "arial",
-            font_size: 35,
-            font_weight: "bold",
-            text: "HireMyEscort.com",
-            color: "white",
-          },
-          gravity: "center",
-          opacity: 0.7,
-          flags: "layer_apply",
-        });
-
-        productImg.push({
-          url: result.secure_url,
-          public_id: result.public_id,
-        });
       }
     }
 
@@ -354,16 +365,22 @@ export const updateProduct = async (req, res) => {
         const fileUri = getDataUri(file);
         const result = await cloudinary.uploader.upload(fileUri, {
           folder: "mern_products",
-          overlay: {
-            font_family: "arial",
-            font_size: 35,
-            font_weight: "bold",
-            text: "HireMyEscort.com",
-            color: "white",
-          },
-          gravity: "center",
-          opacity: 0.7,
-          flags: "layer_apply",
+          quality: "auto",
+          fetch_format: "auto",
+          transformation: [
+            {
+              overlay: {
+                font_family: "arial",
+                font_size: 50,
+                font_weight: "bold",
+                text: "HireMyEscort.com",
+                background: "rgba(0,0,0,0.3)",
+              },
+              color: "white",
+              gravity: "center",
+              effect: "outline:3",
+            },
+          ],
         });
         updatedImages.push({
           url: result.secure_url,
