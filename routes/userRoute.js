@@ -18,13 +18,14 @@ import {
 } from "../controllers/userController.js";
 import { isAdmin, isAuthenticated } from "../middleware/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
+import { authLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/register", register);
+router.post("/register", authLimiter, register);
 router.post("/verify", verify);
 router.post("/reverify", reVerify);
-router.post("/login", login);
+router.post("/login", authLimiter, login);
 router.post("/logout", isAuthenticated, logout);
 router.post("/forgot-password", forgotPassword);
 router.post("/verify-otp/:email", verifyOTP);

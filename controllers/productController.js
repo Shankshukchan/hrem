@@ -80,11 +80,10 @@ export const addProduct = async (req, res) => {
               overlay: {
                 font_family: "arial",
                 font_size: 50,
-                font_weight: "bold",
                 text: "HireMyEscort.com",
                 background: "rgba(0,0,0,0.3)",
               },
-              color: "white",
+              color: "rgba(255, 255, 255, 0.36)",
               gravity: "center",
               effect: "outline:3",
             },
@@ -383,14 +382,14 @@ export const updateProduct = async (req, res) => {
             {
               overlay: {
                 font_family: "arial",
-                font_size: 30,
+                font_size: 50,
 
                 text: "HireMyEscort.com",
                 background: "rgba(0, 0, 0, 0.3)",
               },
-              color: "rgba(255, 255, 255, 0.67)",
+              color: "rgba(255, 255, 255, 0.42)",
               gravity: "center",
-              effect: "outline:3",
+              
             },
           ],
         });
