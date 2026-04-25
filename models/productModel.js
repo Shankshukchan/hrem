@@ -21,7 +21,7 @@ const productSchema = new mongoose.Schema(
     category: { type: String, required: true },
     state: { type: String, required: true },
     city: { type: String, required: true },
-    location: { type: String, required: true },
+    location: { type: String, default: "" },
     age: { type: Number, required: true },
     about: { type: String, required: true },
     terms: { type: String, required: true },

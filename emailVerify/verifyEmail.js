@@ -1,18 +1,12 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import "dotenv/config";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const verifyEmail = async (token, email) => {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
-      },
-    });
-
     const mailConfigurations = {
-      from: process.env.MAIL_USER,
+      from: "info@hiremyescort.com",
       to: email,
       subject: "Email Verification",
       html: `
@@ -27,7 +21,10 @@ export const verifyEmail = async (token, email) => {
             `,
     };
 
-    const info = await transporter.sendMail(mailConfigurations);
+    const info = await resend.emails.send(mailConfigurations);
+    if (info.error) {
+      throw new Error(info.error.message);
+    }
     return info;
   } catch (error) {
     console.error("Error sending verification email:", error);

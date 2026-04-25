@@ -35,7 +35,6 @@ export const addProduct = async (req, res) => {
       !category ||
       !state ||
       !city ||
-      !location ||
       !age ||
       !about ||
       !terms

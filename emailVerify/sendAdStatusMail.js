@@ -1,18 +1,12 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import "dotenv/config";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendAdApprovalMail = async (email, adTitle, adId) => {
   try {
     const mailConfigurations = {
-      from: process.env.MAIL_USER,
+      from: "info@hiremyescort.com",
       to: email,
       subject: "Your Advertisement Has Been Approved",
       html: `
@@ -40,7 +34,10 @@ export const sendAdApprovalMail = async (email, adTitle, adId) => {
           `,
     };
 
-    const info = await transporter.sendMail(mailConfigurations);
+    const info = await resend.emails.send(mailConfigurations);
+    if (info.error) {
+      throw new Error(info.error.message);
+    }
     return info;
   } catch (error) {
     console.error("Error sending approval email:", error);
@@ -69,7 +66,7 @@ export const sendAdRejectionMail = async (
     }
 
     const mailConfigurations = {
-      from: process.env.MAIL_USER,
+      from: "info@hiremyescort.com",
       to: email,
       subject: `Your Advertisement Has Been Rejected${refundAmount > 0 ? " - Coins Refunded" : ""}`,
       html: `
@@ -99,7 +96,10 @@ export const sendAdRejectionMail = async (
           `,
     };
 
-    const info = await transporter.sendMail(mailConfigurations);
+    const info = await resend.emails.send(mailConfigurations);
+    if (info.error) {
+      throw new Error(info.error.message);
+    }
     return info;
   } catch (error) {
     throw error;
