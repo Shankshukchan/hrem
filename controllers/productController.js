@@ -9,7 +9,12 @@ import {
 
 export const addProduct = async (req, res) => {
   try {
-    const {
+    console.log("📥 addProduct called");
+    console.log("Body:", req.body);
+    console.log("Files:", req.files ? `${req.files.length} files` : "no files");
+    console.log("User ID:", req.id);
+
+    let {
       title,
       whatsapp,
       contact,
@@ -24,7 +29,20 @@ export const addProduct = async (req, res) => {
       terms,
       adType = "free",
     } = req.body;
+
+    // Convert age to number
+    age = parseInt(age);
+
     const userId = req.id;
+
+    console.log(
+      "📋 Extracted fields - title:",
+      title,
+      "adType:",
+      adType,
+      "age:",
+      age,
+    );
 
     if (
       !title ||
@@ -39,6 +57,7 @@ export const addProduct = async (req, res) => {
       !about ||
       !terms
     ) {
+      console.log("❌ Missing required fields");
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -56,6 +75,7 @@ export const addProduct = async (req, res) => {
 
     // Check if user has enough coins for paid ads
     if (adType !== "free") {
+      console.log("💰 Checking coins for", adType, "ad");
       const user = await User.findById(userId);
 
       if (user.coins < coinsNeeded) {
@@ -67,33 +87,41 @@ export const addProduct = async (req, res) => {
     }
 
     // Handle multiple image uploads FIRST (before deducting coins)
+    console.log("📸 Processing", req.files?.length || 0, "images");
     let productImg = [];
     if (req.files && req.files.length > 0) {
       for (let file of req.files) {
-        const fileUri = getDataUri(file);
-        const result = await cloudinary.uploader.upload(fileUri, {
-          folder: "mern_products",
-          quality: "auto",
-          fetch_format: "auto",
-          transformation: [
-            {
-              overlay: {
-                font_family: "arial",
-                font_size: 50,
-                text: "HireMyEscort.com",
-                background: "rgba(0,0,0,0.3)",
+        try {
+          console.log("⬆️ Uploading file:", file.originalname);
+          const fileUri = getDataUri(file);
+          const result = await cloudinary.uploader.upload(fileUri, {
+            folder: "mern_products",
+            quality: "auto",
+            fetch_format: "auto",
+            transformation: [
+              {
+                overlay: {
+                  font_family: "arial",
+                  font_size: 50,
+                  text: "HireMyEscort.com",
+                  background: "rgba(0,0,0,0.3)",
+                },
+                color: "rgba(255, 255, 255, 0.36)",
+                gravity: "center",
+                effect: "outline:3",
               },
-              color: "rgba(255, 255, 255, 0.36)",
-              gravity: "center",
-              effect: "outline:3",
-            },
-          ],
-        });
+            ],
+          });
 
-        productImg.push({
-          url: result.secure_url,
-          public_id: result.public_id,
-        });
+          console.log("✅ Image uploaded:", result.public_id);
+          productImg.push({
+            url: result.secure_url,
+            public_id: result.public_id,
+          });
+        } catch (uploadError) {
+          console.error("❌ Cloudinary upload error:", uploadError.message);
+          throw uploadError;
+        }
       }
     }
 
@@ -158,6 +186,7 @@ export const addProduct = async (req, res) => {
     }
 
     // create a product in DB
+    console.log("💾 Creating product in database");
     const newProduct = await Product.create({
       userId,
       title,
@@ -173,18 +202,26 @@ export const addProduct = async (req, res) => {
       about,
       terms,
       adType,
-      productImg, // array of objects [{url, public_id}, {url, public_id},]
+      productImg,
     });
 
+    console.log("✅ Product created:", newProduct._id);
     return res.status(200).json({
       success: true,
       message: "Advertisement added successfully",
       product: newProduct,
     });
   } catch (error) {
+    console.error("❌ addProduct error:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("Full error object:", JSON.stringify(error, null, 2));
+
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to add advertisement",
+      errorType: error.name,
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -389,7 +426,6 @@ export const updateProduct = async (req, res) => {
               },
               color: "rgba(255, 255, 255, 0.42)",
               gravity: "center",
-              
             },
           ],
         });
