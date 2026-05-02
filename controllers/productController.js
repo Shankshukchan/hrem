@@ -111,7 +111,7 @@ export const addProduct = async (req, res) => {
                   font_size: 30,
                   text: "HireMyEscort.com",
                 },
-                color: "ffffff",
+                color: "#ffffff",
                 gravity: "south",
                 y: 10,
               },
