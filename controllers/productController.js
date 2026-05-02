@@ -100,15 +100,20 @@ export const addProduct = async (req, res) => {
             fetch_format: "auto",
             transformation: [
               {
+                width: 500,
+                height: 500,
+                crop: "fill",
+                gravity: "auto",
+              },
+              {
                 overlay: {
                   font_family: "arial",
-                  font_size: 50,
+                  font_size: 30,
                   text: "HireMyEscort.com",
-                  background: "rgb(0,0,0)",
                 },
-                color: "rgb(255,255,255)",
-                gravity: "center",
-                effect: "outline:3",
+                color: "ffffff",
+                gravity: "south",
+                y: 10,
               },
             ],
           });
@@ -417,15 +422,20 @@ export const updateProduct = async (req, res) => {
           fetch_format: "auto",
           transformation: [
             {
+              width: 500,
+              height: 500,
+              crop: "fill",
+              gravity: "auto",
+            },
+            {
               overlay: {
                 font_family: "arial",
-                font_size: 50,
-
+                font_size: 30,
                 text: "HireMyEscort.com",
-                background: "rgb(0,0,0)",
               },
-              color: "rgb(255,255,255)",
-              gravity: "center",
+              color: "ffffff",
+              gravity: "south",
+              y: 10,
             },
           ],
         });
