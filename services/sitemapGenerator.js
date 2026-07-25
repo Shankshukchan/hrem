@@ -238,26 +238,38 @@ export async function generatePagesSitemap() {
   return xml;
 }
 
+function countSitemapUrls(data) {
+  const { flatCities, flatLocations, products } = data;
+  const categories = Object.keys(reverseCategoryMap);
+
+  const cityCount = flatCities.length * categories.length;
+  const locationCount = flatLocations.length * categories.length;
+  const profileCount = products.filter((p) => p.city).length;
+
+  return {
+    citiesPages: Math.ceil(cityCount / MAX_URLS_PER_SITEMAP),
+    locationsPages: Math.ceil(locationCount / MAX_URLS_PER_SITEMAP),
+    profilesPages: Math.ceil(profileCount / MAX_URLS_PER_SITEMAP),
+  };
+}
+
 export async function generateSitemapIndexXml() {
-  const [citiesData, profilesData, locationsData] = await Promise.all([
-    generateCitiesSitemap(0),
-    generateProfilesSitemap(0),
-    generateLocationsSitemap(0),
-  ]);
+  const data = await getAllSitemapData();
+  const { citiesPages, locationsPages, profilesPages } = countSitemapUrls(data);
 
   const files = [];
 
   files.push("sitemap-categories.xml");
 
-  for (let i = 0; i < citiesData.pages; i++) {
+  for (let i = 0; i < citiesPages; i++) {
     files.push(`sitemap-cities-${i + 1}.xml`);
   }
 
-  for (let i = 0; i < locationsData.pages; i++) {
+  for (let i = 0; i < locationsPages; i++) {
     files.push(`sitemap-locations-${i + 1}.xml`);
   }
 
-  for (let i = 0; i < profilesData.pages; i++) {
+  for (let i = 0; i < profilesPages; i++) {
     files.push(`sitemap-profiles-${i + 1}.xml`);
   }
 
