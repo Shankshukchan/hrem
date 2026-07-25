@@ -37,6 +37,22 @@ export const addProduct = async (req, res) => {
 
     const userId = req.id;
 
+    // Check if user has phone number set
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    if (!user.phoneNo) {
+      return res.status(400).json({
+        success: false,
+        message: "Please set your phone number in your profile before posting an ad",
+        requiresPhoneSetup: true,
+      });
+    }
+
     // Normalize category: frontend sends slugs, convert to proper database format
     const categoryMap = {
       "call-girls": "Call Girls",
@@ -90,7 +106,6 @@ export const addProduct = async (req, res) => {
     // Check if user has enough coins for paid ads
     if (adType !== "free") {
       console.log("💰 Checking coins for", adType, "ad");
-      const user = await User.findById(userId);
 
       if (user.coins < coinsNeeded) {
         return res.status(400).json({
@@ -362,6 +377,22 @@ export const updateProduct = async (req, res) => {
 
     const userId = req.id;
     const userRole = req.user?.role;
+
+    // Check if user has phone number set
+    const userForPhone = await User.findById(userId);
+    if (!userForPhone) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    if (!userForPhone.phoneNo) {
+      return res.status(400).json({
+        success: false,
+        message: "Please set your phone number in your profile before updating an ad",
+        requiresPhoneSetup: true,
+      });
+    }
 
     const product = await Product.findById(productId);
 

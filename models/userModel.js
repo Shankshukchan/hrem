@@ -23,7 +23,12 @@ const userSchema = new mongoose.Schema(
     city: { type: String },
     zipCode: { type: String },
     state: { type: String },
-    phoneNo: { type: String },
+    phoneNo: {
+      type: String,
+      required: true,
+      unique: true,
+      match: /^[6-9]\d{9}$/,
+    },
     coins: { type: Number, default: 0 }, // Coins for premium ads
   },
   { timestamps: true },

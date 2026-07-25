@@ -12,8 +12,8 @@ import { ensureString, ensureNumber } from "../utils/sanitize.js";
 
 export const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
-    if (!firstName || !lastName || !email || !password) {
+    const { firstName, lastName, email, password, phoneNo } = req.body;
+    if (!firstName || !lastName || !email || !password || !phoneNo) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -27,11 +27,26 @@ export const register = async (req, res) => {
         message: "User already exists",
       });
     }
+    const sanitizedPhone = phoneNo.replace(/\D/g, "");
+    if (!/^[6-9]\d{9}$/.test(sanitizedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid Indian phone number (10 digits starting with 6-9)",
+      });
+    }
+    const existingPhone = await User.findOne({ phoneNo: sanitizedPhone });
+    if (existingPhone) {
+      return res.status(400).json({
+        success: false,
+        message: "A user with this phone number already exists",
+      });
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({
       firstName,
       lastName,
       email,
+      phoneNo: sanitizedPhone,
       password: hashedPassword,
       coins: 1000, // Award 1000 free coins to new users
     });
@@ -526,6 +541,27 @@ export const updateUser = async (req, res) => {
       });
     }
 
+    // Validate and check phone number uniqueness
+    if (phoneNo) {
+      const sanitizedPhone = phoneNo.replace(/\D/g, "");
+      if (!/^[6-9]\d{9}$/.test(sanitizedPhone)) {
+        return res.status(400).json({
+          success: false,
+          message: "Please enter a valid Indian phone number (10 digits starting with 6-9)",
+        });
+      }
+      if (sanitizedPhone !== user.phoneNo) {
+        const existingPhone = await User.findOne({ phoneNo: sanitizedPhone });
+        if (existingPhone) {
+          return res.status(400).json({
+            success: false,
+            message: "A user with this phone number already exists",
+          });
+        }
+      }
+      user.phoneNo = sanitizedPhone;
+    }
+
     let profilePicUrl = user.profilePic;
     let profilePicPublicId = user.profilePicPublicId;
 
@@ -552,7 +588,6 @@ export const updateUser = async (req, res) => {
     //update fields
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
-    user.phoneNo = phoneNo || user.phoneNo;
     user.address = address || user.address;
     user.city = city || user.city;
     user.state = state || user.state;
